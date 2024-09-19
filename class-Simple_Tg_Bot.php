@@ -103,6 +103,16 @@ class Simple_Tg_Bot {
     }
 
     /**
+     * Returns object of the current request
+     *
+     * @return object
+     */
+    public function getRequest(): object {
+        $input = file_get_contents('php://input');
+        return json_decode($input);
+    }
+
+    /**
      * Helper method for sending requests
      *
      * @param $url
