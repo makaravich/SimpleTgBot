@@ -5,67 +5,109 @@
  * This class allows you to interact with Telegram Bot API
  */
 class Simple_Tg_Bot {
+    /**
+     * @var string Your token ID
+     */
     private string $token;
-    private string $apiUrl;
 
-    public function __construct($token) {
+    /**
+     * @var string Telegram API URL
+     */
+    private string $api_url;
+
+    /**
+     * @var string|mixed|object Respond of API request
+     */
+    private string $request_respond;
+
+    /**
+     * @var string Chat ID
+     */
+    public string $chat_id = '';
+
+    /**
+     * @var string Text from last requested message
+     */
+    protected string $last_received_text = '';
+
+    public function __construct($token, $do_get_request = true) {
         $this->token = $token;
-        $this->apiUrl = "https://api.telegram.org/bot" . $this->token . "/";
+        $this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
+
+        if ($do_get_request) {
+            $this->get_request();
+        }
+    }
+
+    public function get_last_received_text() {
+        return $this->last_received_text;
     }
 
     /**
      * Sending a text message
      *
-     * @param $chatId
+     * @param string $chat_id
      * @param $message
      * @return mixed
      */
-    public function sendMessage($chatId, $message): mixed {
-        $url = $this->apiUrl . "sendMessage";
+    public function send_message($message, string $chat_id = ''): mixed {
+        if ($chat_id === '') {
+            $chat_id = $this->chat_id;
+        }
+
+        $url = $this->api_url . "sendMessage";
         $data = [
-            'chat_id' => $chatId,
+            'chat_id' => $chat_id,
             'text' => $message
         ];
 
-        return $this->sendRequest($url, $data);
+        return $this->send_request($url, $data);
     }
 
     /**
      * Sending a photo
      *
-     * @param $chatId
-     * @param $photoPath
+     * @param string $chat_id
+     * @param $photo_path
      * @param $caption
      * @return mixed
      */
-    public function sendPhoto($chatId, $photoPath, $caption = null): mixed {
-        $url = $this->apiUrl . "sendPhoto";
+    public function send_photo($photo_path, $caption = null, string $chat_id = ''): mixed {
+        if ($chat_id === '') {
+            $chat_id = $this->chat_id;
+        }
+
+        $url = $this->api_url . "sendPhoto";
         $data = [
-            'chat_id' => $chatId,
-            'photo' => new CURLFile(realpath($photoPath)),
+            'chat_id' => $chat_id,
+            'photo' => new CURLFile(realpath($photo_path)),
             'caption' => $caption
         ];
 
-        return $this->sendRequest($url, $data);
+        return $this->send_request($url, $data);
     }
 
     /**
      * Sending a document (file)
      *
-     * @param $chatId
-     * @param $documentPath
-     * @param $caption
+     * @param string $chat_id
+     * @param string $document_path
+     * @param string|null $caption
      * @return mixed
      */
-    public function sendDocument($chatId, $documentPath, $caption = null): mixed {
-        $url = $this->apiUrl . "sendDocument";
+    public function send_document(string $document_path, string $caption = null, string $chat_id = ''): mixed {
+        if ($chat_id === '') {
+            $chat_id = $this->chat_id;
+        }
+
+        $url = $this->api_url . "sendDocument";
         $data = [
-            'chat_id' => $chatId,
-            'document' => new CURLFile(realpath($documentPath)),
+            'chat_id' => $chat_id,
+            'document' => new CURLFile(realpath($document_path)),
             'caption' => $caption
         ];
 
-        return $this->sendRequest($url, $data);
+        return $this->send_request($url, $data);
     }
 
     /**
@@ -73,11 +115,11 @@ class Simple_Tg_Bot {
      * @param $url
      * @return mixed
      */
-    public function setWebhook($url): mixed {
-        $webhookUrl = $this->apiUrl . "setWebhook";
+    public function set_webhook($url): mixed {
+        $webhook_url = $this->api_url . "setWebhook";
         $data = ['url' => $url];
 
-        return $this->sendRequest($webhookUrl, $data);
+        return $this->send_request($webhook_url, $data);
     }
 
     /**
@@ -85,10 +127,10 @@ class Simple_Tg_Bot {
      *
      * @return mixed
      */
-    public function deleteWebhook(): mixed {
-        $url = $this->apiUrl . "deleteWebhook";
+    public function delete_webhook(): mixed {
+        $url = $this->api_url . "deleteWebhook";
 
-        return $this->sendRequest($url);
+        return $this->send_request($url);
     }
 
     /**
@@ -96,10 +138,10 @@ class Simple_Tg_Bot {
      *
      * @return mixed
      */
-    public function getUpdates(): mixed {
-        $url = $this->apiUrl . "getUpdates";
+    public function get_updates(): mixed {
+        $url = $this->api_url . "getUpdates";
 
-        return $this->sendRequest($url);
+        return $this->send_request($url);
     }
 
     /**
@@ -107,9 +149,15 @@ class Simple_Tg_Bot {
      *
      * @return object
      */
-    public function getRequest(): object {
+    public function get_request(): object {
         $input = file_get_contents('php://input');
-        return json_decode($input);
+
+        $this->request_respond = json_decode($input);
+
+        $this->chat_id = $this->request_respond->message->chat->id;
+        $this->last_received_text = $this->request_respond->message->text;
+
+        return $this->request_respond;
     }
 
     /**
@@ -119,7 +167,7 @@ class Simple_Tg_Bot {
      * @param array $data
      * @return mixed
      */
-    private function sendRequest($url, array $data = []): mixed {
+    private function send_request($url, array $data = []): mixed {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
