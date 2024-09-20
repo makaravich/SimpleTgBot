@@ -24,54 +24,50 @@ To start using the `TelegramBot` class, you need to obtain a bot token from [Bot
 ```php
 <?php
 
-require_once 'TelegramBot.php';
+require_once 'class-Simple_Tg_Bot.php';
 
 // Initialize the bot with your bot token
-$bot = new TelegramBot('YOUR_BOT_TOKEN');
+$bot = new Simple_Tg_Bot('YOUR_BOT_TOKEN');
 
 // Send a message to a user
-$chatId = 'CHAT_ID';
-$bot->sendMessage($chatId, "Hello, World!");
+$chat_id = 'CHAT_ID';
+$bot->send_message($chat_id, "Hello, World!");
 
 // Send a photo to a user
-$photoPath = '/path/to/photo.jpg';
-$bot->sendPhoto($chatId, $photoPath, 'Photo caption');
+$photo_path = '/path/to/photo.jpg';
+$bot->send_photo($photo_path, 'Photo caption');
 
 // Send a document to a user
-$documentPath = '/path/to/file.pdf';
-$bot->sendDocument($chatId, $documentPath, 'Document caption');
+$document_path = '/path/to/file.pdf';
+$bot->send_document($document_path, 'Document caption');
 
 // Set a webhook
-$webhookUrl = 'https://yourdomain.com/path/to/webhook';
-$bot->setWebhook($webhookUrl);
+$webhook_url = 'https://yourdomain.com/path/to/webhook';
+$bot->set_webhook($webhook_url);
 
 // Delete the webhook
-$bot->deleteWebhook();
+$bot->delete_webhook();
 
 // Get updates (polling mode)
-$updates = $bot->getUpdates();
+$updates = $bot->get_updates();
 if (!empty($updates['result'])) {
     foreach ($updates['result'] as $update) {
-        $chatId = $update['message']['chat']['id'];
+        $chat_id = $update['message']['chat']['id'];
         $message = $update['message']['text'];
 
         // Respond to the user's message
-        $bot->sendMessage($chatId, "You wrote: $message");
+        $bot->send_message("You wrote: $message");
     }
 }
 ```
 ## Methods
-`sendMessage($chatId, $message)`: Sends a text message to the specified chat.
+- `send_message($message, $chat_id = '')`: Sends a text message to the specified chat.
+- `send_photo($photo_path, $caption = null, $chat_id = '')`: Sends a photo from the specified path with an optional caption.
+- `send_document($document_path, $caption = null, $chat_id = '')`: Sends a document from the specified path with an optional caption.
+- `set_webhook($url)`: Sets the webhook URL for your bot.
+- `delete_webhook()`: Deletes the currently set webhook, reverting to long polling mode.
+- `get_updates()`: Retrieves messages and updates in long polling mode.
 
-`sendPhoto($chatId, $photoPath, $caption = null)`: Sends a photo from the specified path with an optional caption.
-
-`sendDocument($chatId, $documentPath, $caption = null)`: Sends a document from the specified path with an optional caption.
-
-`setWebhook($url)`: Sets the webhook URL for your bot.
-
-`deleteWebhook()`: Deletes the currently set webhook, reverting to long polling mode.
-
-`getUpdates()`: Retrieves messages and updates in long polling mode.
 
 ## Requirements
 
