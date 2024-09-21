@@ -36,13 +36,11 @@ class Simple_Tg_Bot {
     private string $help_message =
         "Want to turn a simple text conversation into a visual chat image? This bot does exactly that! Whether you need a mock-up of a conversation or want to share a creative dialogue, just forward your text, and it will create an image that mimics a chat interface. Your messages remain as-is, while your partner's lines should start with an asterisk (*) for clear distinction. 
 Example: 
-<pre>
-`Hey, are you coming to the party tonight?`
+<pre>Hey, are you coming to the party tonight?
 *Yeah
 *I'll be there around 8 PM.
 Great! See you then.
-*See you!
-</pre>";
+*See you!</pre>";
 
     public function __construct($token, $do_get_request = true) {
         $this->token = $token;
@@ -82,9 +80,9 @@ Great! See you then.
 
     /**
      * Processing of the bot command /start
-     * @return true
+     * @return bool
      */
-    private function command_start(): true {
+    private function command_start(): bool {
         $this->send_message('Hi!');
         $this->send_message($this->help_message);
         $this->send_message('Use command /help to get this tip again');
