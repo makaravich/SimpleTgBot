@@ -18,7 +18,7 @@ class Simple_Tg_Bot {
     /**
      * @var string|mixed|object Respond of API request
      */
-    private string $request_respond;
+    private object $request_respond;
 
     /**
      * @var string Chat ID
@@ -30,6 +30,20 @@ class Simple_Tg_Bot {
      */
     protected string $last_received_text = '';
 
+    /**
+     * @var string Message to send to users as a help
+     */
+    private string $help_message =
+        "Want to turn a simple text conversation into a visual chat image? This bot does exactly that! Whether you need a mock-up of a conversation or want to share a creative dialogue, just forward your text, and it will create an image that mimics a chat interface. Your messages remain as-is, while your partner's lines should start with an asterisk (*) for clear distinction. 
+Example: 
+<pre>
+`Hey, are you coming to the party tonight?`
+*Yeah
+*I'll be there around 8 PM.
+Great! See you then.
+*See you!
+</pre>";
+
     public function __construct($token, $do_get_request = true) {
         $this->token = $token;
         $this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
@@ -39,8 +53,50 @@ class Simple_Tg_Bot {
         }
     }
 
-    public function get_last_received_text() {
+    public function get_last_received_text(): string {
         return $this->last_received_text;
+    }
+
+    public function set_last_received_text($text): void {
+        if (!str_starts_with($text, "/")) {
+            $this->last_received_text = $text;
+        } else {
+            $this->last_received_text = '';
+            $this->run_command($text);
+        }
+    }
+
+    private function run_command($command) {
+        $command = ltrim($command, '/');
+        if (strlen($command) > 100) {
+            return false;
+        } else {
+            if (method_exists($this, 'command_' . $command)) {
+                return call_user_func([$this, 'command_' . $command]);
+            } else {
+                $this->send_message('Unknown command: ' . $command);
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Processing of the bot command /start
+     * @return true
+     */
+    private function command_start(): true {
+        $this->send_message('Hi!');
+        $this->send_message($this->help_message);
+        $this->send_message('Use command /help to get this tip again');
+        return true;
+    }
+
+    /**
+     * Processing of the bot command /help
+     * @return mixed
+     */
+    private function command_help(): mixed {
+        return $this->send_message($this->help_message);
     }
 
     /**
@@ -58,7 +114,8 @@ class Simple_Tg_Bot {
         $url = $this->api_url . "sendMessage";
         $data = [
             'chat_id' => $chat_id,
-            'text' => $message
+            'text' => $message,
+            'parse_mode' => 'HTML'
         ];
 
         return $this->send_request($url, $data);
@@ -155,7 +212,7 @@ class Simple_Tg_Bot {
         $this->request_respond = json_decode($input);
 
         $this->chat_id = $this->request_respond->message->chat->id;
-        $this->last_received_text = $this->request_respond->message->text;
+        $this->set_last_received_text($this->request_respond->message->text);
 
         return $this->request_respond;
     }
