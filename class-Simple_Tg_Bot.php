@@ -202,12 +202,20 @@ Great! See you then.
     /**
      * Returns object of the current request
      *
-     * @return object
+     * @return object|false|string
      */
-    public function get_request(): object {
+    public function get_request(): object|false|string {
         $input = file_get_contents('php://input');
 
+        if (empty($input)) {
+            return false;
+        }
+
         $this->request_respond = json_decode($input);
+
+        if (!$this->request_respond->message->chat->id) {
+            return false;
+        }
 
         $this->chat_id = $this->request_respond->message->chat->id;
         $this->set_last_received_text($this->request_respond->message->text);
