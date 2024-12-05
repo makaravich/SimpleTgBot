@@ -18,7 +18,7 @@ class Simple_Tg_Bot {
     /**
      * @var string|mixed|object Respond of API request
      */
-    private object $request_respond;
+    public object $request_respond;
 
     /**
      * @var string Chat ID
@@ -56,11 +56,13 @@ Great! See you then.
     }
 
     public function set_last_received_text($text): void {
-        if (!str_starts_with($text, "/")) {
+        if (!empty ($text) && !str_starts_with($text, "/")) {
             $this->last_received_text = $text;
         } else {
             $this->last_received_text = '';
-            $this->run_command($text);
+            if (!empty ($text)) {
+                $this->run_command($text);
+            }
         }
     }
 
