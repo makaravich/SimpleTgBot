@@ -55,7 +55,7 @@ Great! See you then.
         return $this->last_received_text;
     }
 
-    public function set_last_received_text($text): void {
+    private function set_last_received_text($text): void {
         if (!empty ($text) && !str_starts_with($text, "/")) {
             $this->last_received_text = $text;
         } else {
@@ -69,13 +69,11 @@ Great! See you then.
     private function run_command($command) {
         $command = ltrim($command, '/');
         if (strlen($command) > 100) {
-            return false;
         } else {
             if (method_exists($this, 'command_' . $command)) {
                 return call_user_func([$this, 'command_' . $command]);
             } else {
                 $this->send_message('Unknown command: ' . $command);
-                return false;
             }
         }
     }
