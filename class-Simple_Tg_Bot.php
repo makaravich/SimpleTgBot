@@ -107,12 +107,14 @@ class Simple_Tg_Bot {
 	/**
 	 * Sending a text message
 	 *
-	 * @param string $chat_id
 	 * @param $message
+	 *
+	 * @param string $chat_id
+	 * @param null $reply_markup
 	 *
 	 * @return mixed
 	 */
-	public function send_message( $message, string $chat_id = '' ): mixed {
+	public function send_message( $message, string $chat_id = '', $reply_markup = null ): mixed {
 		if ( $chat_id === '' ) {
 			$chat_id = $this->chat_id;
 		}
@@ -123,6 +125,10 @@ class Simple_Tg_Bot {
 			'text'       => $message,
 			'parse_mode' => 'HTML'
 		];
+
+		if ( $reply_markup ) {
+			$data['reply_markup'] = json_encode( $reply_markup );
+		}
 
 		return $this->send_request( $url, $data );
 	}
