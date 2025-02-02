@@ -231,11 +231,18 @@ class Simple_Tg_Bot {
 
 		$this->request_respond = json_decode( $input );
 
-		if ( ! $this->request_respond->message->chat->id ) {
-			return false;
+		$chat_id = $this->request_respond->message->chat->id;
+
+		if ( ! $chat_id ) {
+			$chat_id = $this->request_respond->callback_query->from->id;
 		}
 
-		$this->chat_id = $this->request_respond->message->chat->id;
+		if ( ! $chat_id ) {
+			return false;
+		} else {
+			$this->chat_id = $chat_id;
+		}
+
 		$this->set_last_received_text( $this->request_respond->message->text );
 
 		return $this->request_respond;
