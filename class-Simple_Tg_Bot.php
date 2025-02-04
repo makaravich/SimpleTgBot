@@ -88,7 +88,7 @@ class Simple_Tg_Bot {
 	 * Processing of the bot command /start
 	 * @return bool
 	 */
-	private function command_start(): bool {
+	public function command_start(): bool {
 		$this->send_message( 'Hi!' );
 		$this->send_message( $this->help_message );
 		$this->send_message( 'Use command /help to get this tip again' );
@@ -100,7 +100,7 @@ class Simple_Tg_Bot {
 	 * Processing of the bot command /help
 	 * @return mixed
 	 */
-	private function command_help(): mixed {
+	public function command_help(): mixed {
 		return $this->send_message( $this->help_message );
 	}
 
