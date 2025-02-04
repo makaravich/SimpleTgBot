@@ -243,7 +243,7 @@ class Simple_Tg_Bot {
 			$this->chat_id = $chat_id;
 		}
 
-		$this->set_last_received_text( $this->request_respond->message->text );
+		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
 
 		return $this->request_respond;
 	}
