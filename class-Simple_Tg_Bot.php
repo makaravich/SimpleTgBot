@@ -35,24 +35,32 @@ class Simple_Tg_Bot {
 	 */
 	private string $help_message = 'Default help message';
 
-	private array $commands = [];
+	/**
+	 * @var array
+	 */
+	protected array $map = [];
+
+	private bool $auto_exec = true;
 
 	public function __construct( $token, $do_get_request = true, $bot_map = [] ) {
 		$this->token   = $token;
 		$this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
 
-		if ( isset( $bot_map['help_message'] ) ) {
-			$this->help_message = $bot_map['help_message'];
+		$this->map = $bot_map;
+
+		if ( $this->map['auto_exec'] === false ) {
+			$this->auto_exec = false;
 		}
 
-		if ( $bot_map['commands'] && is_array( $bot_map['commands'] ) ) {
-			foreach ( $bot_map['commands'] as $command ) {
-				$this->commands[] = $command;
-			}
+		if ( isset( $this->map['help_message'] ) ) {
+			$this->help_message = $this->map['help_message'];
 		}
 
-		if ( $do_get_request ) {
+		if ( $do_get_request && ! isset( $this->map['request_respond'] ) ) {
 			$this->get_request();
+		} elseif ( isset( $this->map['request_respond'] ) ) {
+			error_log( '{DEBUG BOT} Run set_existing_request_respond' );
+			$this->set_existing_request_respond( $this->map['request_respond'] );
 		}
 	}
 
@@ -65,13 +73,15 @@ class Simple_Tg_Bot {
 			$this->last_received_text = $text;
 		} else {
 			$this->last_received_text = '';
-			if ( ! empty ( $text ) ) {
+			if ( ! empty ( $text ) && $this->auto_exec ) {
 				$this->run_command( $text );
+			} elseif ( ! $this->auto_exec ) {
+				$this->last_received_text = $text; // Save the text of command if it was not run
 			}
 		}
 	}
 
-	private function run_command( $command ): void {
+	public function run_command( $command ): void {
 		$command = ltrim( $command, '/' );
 		if ( strlen( $command ) > 100 ) {
 			$this->send_message( __( 'Too long command' ) );
@@ -231,6 +241,35 @@ class Simple_Tg_Bot {
 
 		$this->request_respond = json_decode( $input );
 
+		$this->update_chat_id();
+
+		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
+
+		return $this->request_respond;
+	}
+
+	/**
+	 * Set request respond from existing data
+	 * Use to re-create the bot without get data from Telegram
+	 *
+	 * @param $request_respond
+	 *
+	 * @return void
+	 */
+	private function set_existing_request_respond( $request_respond ): void {
+		$this->request_respond = $request_respond;
+
+		$this->update_chat_id();
+
+		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
+	}
+
+	/**
+	 * Update Chat_id based on request_respond
+	 *
+	 * @return void
+	 */
+	private function update_chat_id(): void {
 		$chat_id = $this->request_respond->message->chat->id;
 
 		if ( ! $chat_id ) {
@@ -238,14 +277,10 @@ class Simple_Tg_Bot {
 		}
 
 		if ( ! $chat_id ) {
-			return false;
+			return;
 		} else {
 			$this->chat_id = $chat_id;
 		}
-
-		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
-
-		return $this->request_respond;
 	}
 
 	/**
