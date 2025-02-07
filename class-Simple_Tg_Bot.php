@@ -46,7 +46,7 @@ class Simple_Tg_Bot {
 		$this->token   = $token;
 		$this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
 
-		$this->map = $bot_map;
+		$this->set_map( $bot_map );
 
 		if ( $this->map['auto_exec'] === false ) {
 			$this->auto_exec = false;
@@ -62,6 +62,14 @@ class Simple_Tg_Bot {
 			error_log( '{DEBUG BOT} Run set_existing_request_respond' );
 			$this->set_existing_request_respond( $this->map['request_respond'] );
 		}
+	}
+
+	private function set_map( $map ): void {
+		$this->map = $map;
+	}
+
+	public function get_map(): array {
+		return $this->map;
 	}
 
 	public function get_last_received_text(): string {
