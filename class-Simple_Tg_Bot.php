@@ -26,6 +26,11 @@ class Simple_Tg_Bot {
 	public string $chat_id = '';
 
 	/**
+	 * @var object
+	 */
+	private object $last_request_response;
+
+	/**
 	 * @var string Text from last requested message
 	 */
 	protected string $last_received_text = '';
@@ -40,7 +45,11 @@ class Simple_Tg_Bot {
 	 */
 	protected array $map = [];
 
+	/**
+	 * @var bool
+	 */
 	private bool $auto_exec = true;
+
 
 	public function __construct( $token, $do_get_request = true, $bot_map = [] ) {
 		$this->token   = $token;
@@ -309,6 +318,78 @@ class Simple_Tg_Bot {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		return json_decode( $response, true );
+		$this->last_request_response = json_decode( $response );
+
+		return $this->last_request_response;
+	}
+
+	/**
+	 * Update text and (or) markup (buttons) in the existing message
+	 *
+	 * @param $message_id
+	 * @param string $text
+	 * @param null $reply_markup
+	 *
+	 * @return void
+	 */
+	public function edit_message( $message_id, string $text = '', $reply_markup = null ): void {
+		/*
+		if ( ! $reply_markup ) {
+			$inline_buttons = [
+				[ [ 'text' => '🔄 Новая кнопка', 'callback_data' => 'new_action' ] ]
+			];
+
+			$reply_markup = [ 'inline_keyboard' => $inline_buttons ];
+		}
+		*/
+
+		$url = $this->api_url . "editMessageText";
+
+		$request = [
+			'chat_id'    => $this->chat_id,
+			'message_id' => $message_id,
+			'parse_mode' => 'HTML',
+		];
+
+		if ( $reply_markup ) {
+			$request['reply_markup'] = json_encode( $reply_markup );
+		}
+
+		if ( $text ) {
+			$request['text'] = $text;
+		}
+
+		$this->send_request( $url, $request );
+	}
+
+
+	/**
+	 * Update markup (buttons) in the existing message
+	 *
+	 * @param $message_id
+	 * @param null $reply_markup
+	 *
+	 * @return void
+	 */
+	public function edit_message_markup( $message_id, $reply_markup ): void {
+
+		$url = $this->api_url . "editMessageReplyMarkup";
+
+		$request = [
+			'chat_id'      => $this->chat_id,
+			'message_id'   => $message_id,
+			'reply_markup' => json_encode( $reply_markup )
+		];
+
+		$this->send_request( $url, $request );
+	}
+
+	/**
+	 * Returns last request response
+	 *
+	 * @return object
+	 */
+	public function get_last_request_response(): object {
+		return $this->last_request_response;
 	}
 }
