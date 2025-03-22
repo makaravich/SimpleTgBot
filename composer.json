@@ -1,0 +1,17 @@
+{
+  "name": "makaravich/simple-tg-bot",
+  "description": "A simple PHP class for interacting with the Telegram Bot API. This class makes it easy to send and receive messages, photos, and documents, as well as manage webhooks.",
+  "type": "library",
+  "require": {
+    "php": ">=8.0",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "\\": "src/"
+    },
+    "classmap": [
+      "src/"
+    ]
+  }
+}
