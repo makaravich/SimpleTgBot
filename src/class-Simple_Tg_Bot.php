@@ -26,6 +26,11 @@ class Simple_Tg_Bot {
 	public string $chat_id = '';
 
 	/**
+	 * @var object
+	 */
+	private object $last_request_response;
+
+	/**
 	 * @var string Text from last requested message
 	 */
 	protected string $last_received_text = '';
@@ -35,25 +40,45 @@ class Simple_Tg_Bot {
 	 */
 	private string $help_message = 'Default help message';
 
-	private array $commands = [];
+	/**
+	 * @var array
+	 */
+	protected array $map = [];
+
+	/**
+	 * @var bool
+	 */
+	private bool $auto_exec = true;
+
 
 	public function __construct( $token, $do_get_request = true, $bot_map = [] ) {
 		$this->token   = $token;
 		$this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
 
-		if ( isset( $bot_map['help_message'] ) ) {
-			$this->help_message = $bot_map['help_message'];
+		$this->set_map( $bot_map );
+
+		if ( $this->map['auto_exec'] === false ) {
+			$this->auto_exec = false;
 		}
 
-		if ( $bot_map['commands'] && is_array( $bot_map['commands'] ) ) {
-			foreach ( $bot_map['commands'] as $command ) {
-				$this->commands[] = $command;
-			}
+		if ( isset( $this->map['help_message'] ) ) {
+			$this->help_message = $this->map['help_message'];
 		}
 
-		if ( $do_get_request ) {
+		if ( $do_get_request && ! isset( $this->map['request_respond'] ) ) {
 			$this->get_request();
+		} elseif ( isset( $this->map['request_respond'] ) ) {
+			error_log( '{DEBUG BOT} Run set_existing_request_respond' );
+			$this->set_existing_request_respond( $this->map['request_respond'] );
 		}
+	}
+
+	private function set_map( $map ): void {
+		$this->map = $map;
+	}
+
+	public function get_map(): array {
+		return $this->map;
 	}
 
 	public function get_last_received_text(): string {
@@ -65,13 +90,15 @@ class Simple_Tg_Bot {
 			$this->last_received_text = $text;
 		} else {
 			$this->last_received_text = '';
-			if ( ! empty ( $text ) ) {
+			if ( ! empty ( $text ) && $this->auto_exec ) {
 				$this->run_command( $text );
+			} elseif ( ! $this->auto_exec ) {
+				$this->last_received_text = $text; // Save the text of command if it was not run
 			}
 		}
 	}
 
-	private function run_command( $command ): void {
+	public function run_command( $command ): void {
 		$command = ltrim( $command, '/' );
 		if ( strlen( $command ) > 100 ) {
 			$this->send_message( __( 'Too long command' ) );
@@ -88,7 +115,7 @@ class Simple_Tg_Bot {
 	 * Processing of the bot command /start
 	 * @return bool
 	 */
-	private function command_start(): bool {
+	public function command_start(): bool {
 		$this->send_message( 'Hi!' );
 		$this->send_message( $this->help_message );
 		$this->send_message( 'Use command /help to get this tip again' );
@@ -100,19 +127,21 @@ class Simple_Tg_Bot {
 	 * Processing of the bot command /help
 	 * @return mixed
 	 */
-	private function command_help(): mixed {
+	public function command_help(): mixed {
 		return $this->send_message( $this->help_message );
 	}
 
 	/**
 	 * Sending a text message
 	 *
-	 * @param string $chat_id
 	 * @param $message
+	 *
+	 * @param string $chat_id
+	 * @param null $reply_markup
 	 *
 	 * @return mixed
 	 */
-	public function send_message( $message, string $chat_id = '' ): mixed {
+	public function send_message( $message, string $chat_id = '', $reply_markup = null ): mixed {
 		if ( $chat_id === '' ) {
 			$chat_id = $this->chat_id;
 		}
@@ -123,6 +152,10 @@ class Simple_Tg_Bot {
 			'text'       => $message,
 			'parse_mode' => 'HTML'
 		];
+
+		if ( $reply_markup ) {
+			$data['reply_markup'] = json_encode( $reply_markup );
+		}
 
 		return $this->send_request( $url, $data );
 	}
@@ -225,14 +258,46 @@ class Simple_Tg_Bot {
 
 		$this->request_respond = json_decode( $input );
 
-		if ( ! $this->request_respond->message->chat->id ) {
-			return false;
-		}
+		$this->update_chat_id();
 
-		$this->chat_id = $this->request_respond->message->chat->id;
-		$this->set_last_received_text( $this->request_respond->message->text );
+		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
 
 		return $this->request_respond;
+	}
+
+	/**
+	 * Set request respond from existing data
+	 * Use to re-create the bot without get data from Telegram
+	 *
+	 * @param $request_respond
+	 *
+	 * @return void
+	 */
+	private function set_existing_request_respond( $request_respond ): void {
+		$this->request_respond = $request_respond;
+
+		$this->update_chat_id();
+
+		$this->set_last_received_text( $this->request_respond->message->text ?? '' );
+	}
+
+	/**
+	 * Update Chat_id based on request_respond
+	 *
+	 * @return void
+	 */
+	private function update_chat_id(): void {
+		$chat_id = $this->request_respond->message->chat->id;
+
+		if ( ! $chat_id ) {
+			$chat_id = $this->request_respond->callback_query->from->id;
+		}
+
+		if ( ! $chat_id ) {
+			return;
+		} else {
+			$this->chat_id = $chat_id;
+		}
 	}
 
 	/**
@@ -253,6 +318,78 @@ class Simple_Tg_Bot {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		return json_decode( $response, true );
+		$this->last_request_response = json_decode( $response );
+
+		return $this->last_request_response;
+	}
+
+	/**
+	 * Update text and (or) markup (buttons) in the existing message
+	 *
+	 * @param $message_id
+	 * @param string $text
+	 * @param null $reply_markup
+	 *
+	 * @return void
+	 */
+	public function edit_message( $message_id, string $text = '', $reply_markup = null ): void {
+		/*
+		if ( ! $reply_markup ) {
+			$inline_buttons = [
+				[ [ 'text' => '🔄 Новая кнопка', 'callback_data' => 'new_action' ] ]
+			];
+
+			$reply_markup = [ 'inline_keyboard' => $inline_buttons ];
+		}
+		*/
+
+		$url = $this->api_url . "editMessageText";
+
+		$request = [
+			'chat_id'    => $this->chat_id,
+			'message_id' => $message_id,
+			'parse_mode' => 'HTML',
+		];
+
+		if ( $reply_markup ) {
+			$request['reply_markup'] = json_encode( $reply_markup );
+		}
+
+		if ( $text ) {
+			$request['text'] = $text;
+		}
+
+		$this->send_request( $url, $request );
+	}
+
+
+	/**
+	 * Update markup (buttons) in the existing message
+	 *
+	 * @param $message_id
+	 * @param null $reply_markup
+	 *
+	 * @return void
+	 */
+	public function edit_message_markup( $message_id, $reply_markup ): void {
+
+		$url = $this->api_url . "editMessageReplyMarkup";
+
+		$request = [
+			'chat_id'      => $this->chat_id,
+			'message_id'   => $message_id,
+			'reply_markup' => json_encode( $reply_markup )
+		];
+
+		$this->send_request( $url, $request );
+	}
+
+	/**
+	 * Returns last request response
+	 *
+	 * @return object
+	 */
+	public function get_last_request_response(): object {
+		return $this->last_request_response;
 	}
 }
