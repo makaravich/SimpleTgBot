@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
+    'Simple_Tg_Bot' => $baseDir . '/src/Simple_Tg_Bot.php',
 );
