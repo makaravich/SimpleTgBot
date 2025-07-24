@@ -3,7 +3,7 @@
         'name' => 'makaravich/simple-tg-bot',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '100614fcf9bc9a2e59c72b8ae6385985cb032709',
+        'reference' => '0fdadf366eb997076f30ba7f32931a36abe9241e',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'makaravich/simple-tg-bot' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '100614fcf9bc9a2e59c72b8ae6385985cb032709',
+            'reference' => '0fdadf366eb997076f30ba7f32931a36abe9241e',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -405,38 +405,31 @@ class Simple_Tg_Bot
      * @param $message_id
      * @param string $text
      * @param null $reply_markup
-     *
+     * @param string $parse_mode
      * @return void
      */
-    public function edit_message($message_id, string $text = '', $reply_markup = null): void
+    public function edit_message($message_id, string $text = '', $reply_markup = null, $parse_mode='HTML'): void
     {
-        /*
-        if ( ! $reply_markup ) {
-            $inline_buttons = [
-                [ [ 'text' => '🔄 Новая кнопка', 'callback_data' => 'new_action' ] ]
-            ];
-
-            $reply_markup = [ 'inline_keyboard' => $inline_buttons ];
-        }
-        */
-
         $url = $this->api_url . "editMessageText";
 
         $request = [
-            'chat_id' => $this->chat_id,
+            'chat_id'    => $this->chat_id,
             'message_id' => $message_id,
-            'parse_mode' => 'HTML',
+            'parse_mode' => $parse_mode,
         ];
 
-        if ($reply_markup) {
-            $request['reply_markup'] = json_encode($reply_markup);
+        if ( $reply_markup ) {
+            $request['reply_markup'] = json_encode( $reply_markup );
         }
 
-        if ($text) {
+        if ( $text ) {
+            if ( $parse_mode == 'MarkdownV2' ) {
+                $text = $this->escape_markdown_v2( $text );
+            }
             $request['text'] = $text;
         }
 
-        $this->send_request($url, $request);
+        $this->send_request( $url, $request );
     }
 
 
