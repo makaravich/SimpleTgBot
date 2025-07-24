@@ -408,7 +408,7 @@ class Simple_Tg_Bot
      * @param string $parse_mode
      * @return void
      */
-    public function edit_message($message_id, string $text = '', $reply_markup = null, $parse_mode='HTML'): void
+    public function edit_message($message_id, string $text = '', $reply_markup = null, string $parse_mode='HTML'): void
     {
         $url = $this->api_url . "editMessageText";
 
