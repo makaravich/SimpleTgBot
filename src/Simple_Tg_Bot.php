@@ -1,8 +1,9 @@
 <?php
 
 /**
- *
  * This class allows you to interact with Telegram Bot API
+ *
+ * V. 0.1.8
  */
 class Simple_Tg_Bot
 {
@@ -429,6 +430,23 @@ class Simple_Tg_Bot
             $request['text'] = $text;
         }
 
+        $this->send_request( $url, $request );
+    }
+
+
+    /**
+     * Deletes a message from Telegram chat
+     *
+     * @param int $message_id ID of the message to be deleted
+     *
+     * @return void
+     */
+    public function delete_message( int $message_id ): void {
+        $url     = $this->api_url . "deleteMessage";
+        $request = [
+            'chat_id'    => $this->chat_id,
+            'message_id' => $message_id,
+        ];
         $this->send_request( $url, $request );
     }
 
