@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.9
+ * V. 0.1.10
  */
 class Simple_Tg_Bot
 {
@@ -213,7 +213,9 @@ class Simple_Tg_Bot
      */
     function escape_markdown_v2(string $text): string
     {
-        $special_chars = ['\\', '_', '*', '[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+        //$special_chars = ['\\', '_', '*', '[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+        $special_chars = ['\\', '[', ']', '(', ')', '~', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+
         foreach ($special_chars as $char) {
             $text = str_replace($char, '\\' . $char, $text);
         }
