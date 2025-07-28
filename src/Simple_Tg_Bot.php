@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.11
+ * V. 0.1.12
  */
 class Simple_Tg_Bot
 {
@@ -204,23 +204,159 @@ class Simple_Tg_Bot
     }
 
     /**
-     * Escapes special characters in text for Telegram MarkdownV2 format
-     * Characters that will be escaped: _ * [ ] ( ) ~ ` > # + - = | { } . !
+     * Escapes special characters for Telegram MarkdownV2 format
+     * Handles paired symbols (_*~`), brackets, links and other special characters
+     * according to MarkdownV2 specification
      *
-     * @param string $text Text that needs to be escaped for MarkdownV2
+     * @param string $text Text to be escaped
      *
-     * @return string Escaped text safe for MarkdownV2 formatting
+     * @return string Escaped text ready for MarkdownV2 formatting
      */
-    function escape_markdown_v2(string $text): string
+    private function escape_markdown_v2(string $text): string
     {
-        //$special_chars = ['\\', '_', '*', '[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        $special_chars = ['\\', '[', ']', '(', ')', '~', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+        $result = '';
+        $length = mb_strlen($text);
 
-        foreach ($special_chars as $char) {
-            $text = str_replace($char, '\\' . $char, $text);
+        // States for paired symbols
+        $states = [
+            '_' => false,
+            '*' => false,
+            '~' => false,
+            '`' => false
+        ];
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = mb_substr($text, $i, 1);
+            $remaining = mb_substr($text, $i + 1);
+
+            switch ($char) {
+                case '_':
+                case '*':
+                case '~':
+                case '`':
+                    // If symbol is already opened, this is a closing symbol
+                    if ($states[$char]) {
+                        $result .= $char;
+                        $states[$char] = false;
+                    } else {
+                        // Check if there's a closing symbol in the remaining text
+                        if (mb_strpos($remaining, $char) !== false) {
+                            $result .= $char;
+                            $states[$char] = true;
+                        } else {
+                            // No pair - escape it
+                            $result .= '\\' . $char;
+                        }
+                    }
+                    break;
+
+                case '[':
+                    // Escape if there's no corresponding closing bracket ]
+                    if (mb_strpos($remaining, ']') === false) {
+                        $result .= '\\' . $char;
+                    } else {
+                        $result .= $char;
+                    }
+                    break;
+
+                case ']':
+                    // Escape if there's no corresponding opening bracket [
+                    $before = mb_substr($text, 0, $i);
+                    if (mb_strrpos($before, '[') === false) {
+                        $result .= '\\' . $char;
+                    } else {
+                        $result .= $char;
+                    }
+                    break;
+
+                case '(':
+                    // Check if this is part of a link [text](url)
+                    $before = mb_substr($text, 0, $i);
+                    $is_link = false;
+
+                    // Look for the last closing square bracket before current position
+                    $last_bracket_pos = mb_strrpos($before, ']');
+                    if ($last_bracket_pos !== false) {
+                        // Check that there are no other characters between ] and ( (except spaces)
+                        $between = mb_substr($before, $last_bracket_pos + 1);
+                        if (preg_match('/^\s*$/', $between)) {
+                            // Check that there's a corresponding opening square bracket
+                            $text_before_bracket = mb_substr($before, 0, $last_bracket_pos);
+                            if (mb_strrpos($text_before_bracket, '[') !== false) {
+                                $is_link = true;
+                            }
+                        }
+                    }
+
+                    if ($is_link) {
+                        $result .= $char;
+                    } else {
+                        $result .= '\\' . $char;
+                    }
+                    break;
+
+                case ')':
+                    // Always escape except when it's part of a link
+                    $before = mb_substr($text, 0, $i);
+                    $is_link_end = false;
+
+                    // Look for the last opening parenthesis
+                    $last_paren_pos = mb_strrpos($before, '(');
+                    if ($last_paren_pos !== false) {
+                        // Check that there was a closing square bracket before (
+                        $text_before_paren = mb_substr($before, 0, $last_paren_pos);
+                        $last_bracket_pos = mb_strrpos($text_before_paren, ']');
+                        if ($last_bracket_pos !== false) {
+                            $between = mb_substr($text_before_paren, $last_bracket_pos + 1);
+                            if (preg_match('/^\s*$/', $between)) {
+                                // Check for opening square bracket
+                                $text_before_bracket = mb_substr($text_before_paren, 0, $last_bracket_pos);
+                                if (mb_strrpos($text_before_bracket, '[') !== false) {
+                                    $is_link_end = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if ($is_link_end) {
+                        $result .= $char;
+                    } else {
+                        $result .= '\\' . $char;
+                    }
+                    break;
+
+                case '>':
+                    // Don't escape if it's at the beginning of a line (quote)
+                    $before = mb_substr($text, 0, $i);
+                    $is_line_start = ($i === 0) || (mb_substr($before, -1) === "\n");
+
+                    if ($is_line_start) {
+                        $result .= $char;
+                    } else {
+                        $result .= '\\' . $char;
+                    }
+                    break;
+
+                case '#':
+                case '+':
+                case '-':
+                case '=':
+                case '|':
+                case '{':
+                case '}':
+                case '.':
+                case '!':
+                    // These symbols are always escaped
+                    $result .= '\\' . $char;
+                    break;
+
+                default:
+                    $result .= $char;
+                    break;
+            }
         }
 
-        return $text;
+        return $result;
     }
 
     /**
@@ -399,6 +535,10 @@ class Simple_Tg_Bot
 
         error_log('{DEBUG RESPONSE} ' . print_r($this->last_request_response, true));
 
+        if (!$this->last_request_response->ok) {
+            $this->send_message('There was an error with the request. Please try again later.');
+        }
+
         return $this->last_request_response;
     }
 
@@ -409,30 +549,31 @@ class Simple_Tg_Bot
      * @param string $text
      * @param null $reply_markup
      * @param string $parse_mode
+     *
      * @return void
      */
-    public function edit_message($message_id, string $text = '', $reply_markup = null, string $parse_mode='HTML'): void
+    public function edit_message($message_id, string $text = '', $reply_markup = null, string $parse_mode = 'HTML'): void
     {
         $url = $this->api_url . "editMessageText";
 
         $request = [
-            'chat_id'    => $this->chat_id,
+            'chat_id' => $this->chat_id,
             'message_id' => $message_id,
             'parse_mode' => $parse_mode,
         ];
 
-        if ( $reply_markup ) {
-            $request['reply_markup'] = json_encode( $reply_markup );
+        if ($reply_markup) {
+            $request['reply_markup'] = json_encode($reply_markup);
         }
 
-        if ( $text ) {
-            if ( $parse_mode == 'MarkdownV2' ) {
-                $text = $this->escape_markdown_v2( $text );
+        if ($text) {
+            if ($parse_mode == 'MarkdownV2') {
+                $text = $this->escape_markdown_v2($text);
             }
             $request['text'] = $text;
         }
 
-        $this->send_request( $url, $request );
+        $this->send_request($url, $request);
     }
 
 
@@ -443,13 +584,14 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    public function delete_message( int $message_id ): void {
-        $url     = $this->api_url . "deleteMessage";
+    public function delete_message(int $message_id): void
+    {
+        $url = $this->api_url . "deleteMessage";
         $request = [
-            'chat_id'    => $this->chat_id,
+            'chat_id' => $this->chat_id,
             'message_id' => $message_id,
         ];
-        $this->send_request( $url, $request );
+        $this->send_request($url, $request);
     }
 
 
