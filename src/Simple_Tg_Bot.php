@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.13
+ * V. 0.1.14
  */
 class Simple_Tg_Bot
 {
@@ -467,7 +467,7 @@ class Simple_Tg_Bot
 
         $this->update_chat_id();
 
-        $this->set_last_received_text($this->request_respond->message->text ?? '');
+        $this->set_last_received_text($this->request_respond->message->text ?? $this->request_respond->message->caption ?? '');
 
         return $this->request_respond;
     }
@@ -486,7 +486,7 @@ class Simple_Tg_Bot
 
         $this->update_chat_id();
 
-        $this->set_last_received_text($this->request_respond->message->text ?? '');
+        $this->set_last_received_text($this->request_respond->message->text ?? $this->request_respond->message->caption ?? '');
     }
 
     /**
@@ -626,4 +626,110 @@ class Simple_Tg_Bot
     {
         return $this->last_request_response;
     }
+
+    /**
+     * Gets the URL of the maximum resolution image from Telegram Bot API response
+     *
+     * @param object $message Message from Telegram Bot API
+     *
+     * @return string|null Image URL or null if photo is not found
+     */
+    public function get_photo_url(object $message): ?string
+    {
+        error_log('{get_photo_url DEBUG MESSAGE} ' . print_r($message, true));
+
+        $message = $message->message ?? $message;
+
+        // Check if the message contains photo
+        if (!is_array($message->photo) || empty($message->photo)) {
+            return null;
+        }
+
+        // Find photo with maximum size
+        $max_photo = $this->get_max_resolution_photo($message->photo);
+        error_log('{get_photo_url $max_photo} ' . print_r($max_photo, true));
+        if (!$max_photo || !isset($max_photo->file_id)) {
+            return null;
+        }
+
+        // Get file information via getFile API
+        $file_info = $this->get_file_info($max_photo->file_id, $this->token);
+        error_log('{get_photo_url $file_info} ' . print_r($file_info, true));
+        if (!$file_info || !isset($file_info['file_path'])) {
+            return null;
+        }
+
+        // Form URL for file download
+        return "https://api.telegram.org/file/bot{$this->token}/{$file_info['file_path']}";
+    }
+
+    /**
+     * Finds photo with maximum resolution from PhotoSize array
+     *
+     * @param array $photos Array of PhotoSize objects
+     *
+     * @return object|null PhotoSize object with maximum resolution
+     */
+    function get_max_resolution_photo(array $photos): ?object
+    {
+        if (empty($photos)) {
+            return null;
+        }
+
+        $max_photo = null;
+        $max_size = 0;
+
+        foreach ($photos as $photo) {
+            // Calc image size (width * height)
+            $current_size = ($photo->width ?? 0) * ($photo->height ?? 0);
+
+            if ($current_size > $max_size) {
+                $max_size = $current_size;
+                $max_photo = $photo;
+            }
+        }
+
+        return $max_photo;
+    }
+
+    /**
+     * Gets file information via Telegram Bot API
+     *
+     * @param string $fileId File ID
+     *
+     * @return array|null File information or null in case of error
+     */
+    function get_file_info(string $fileId): ?array
+    {
+        $url = "https://api.telegram.org/bot{$this->token}/getFile?file_id=" . urlencode($fileId);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10); // request timeout
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // verify SSL certificate
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            curl_close($ch);
+            return null;
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            return null;
+        }
+
+        $data = json_decode($response, true);
+
+        if (!is_array($data) || !$data['ok'] || !isset($data['result'])) {
+            return null;
+        }
+
+        return $data['result'];
+    }
+
 }
