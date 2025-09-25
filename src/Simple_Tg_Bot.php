@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.15
+ * V. 0.1.16
  */
 class Simple_Tg_Bot
 {
@@ -527,13 +527,13 @@ class Simple_Tg_Bot
 
         $response = curl_exec($ch);
 
-        error_log('{DEBUG CURL} ' . $response);
+        //error_log('{DEBUG CURL} ' . $response);
 
         curl_close($ch);
 
         $this->last_request_response = json_decode($response);
 
-        error_log('{DEBUG RESPONSE} ' . print_r($this->last_request_response, true));
+        //error_log('{DEBUG RESPONSE} ' . print_r($this->last_request_response, true));
 
         if (!$this->last_request_response->ok) {
             $this->send_message('There was an error with the request. Please try again later.');
@@ -634,6 +634,66 @@ class Simple_Tg_Bot
      *
      * @return string|null Image URL or null if photo is not found
      */
+    public function get_document_url(object $message): ?string
+    {
+        $message = $message->message ?? $message;
+
+        // Check if the message contains photo
+        if (is_array($message->photo) && !empty($message->photo)) {
+            return $this->get_photo_url($message);
+        }
+
+        $fileId = '';
+
+        // Check different file types and extract file_id
+
+        // Documents
+        if (isset($message->document)) {
+            $fileId = $message->document->file_id;
+        } // Videos
+        elseif (isset($message->video)) {
+            $fileId = $message->video->file_id;
+        } // Audio files
+        elseif (isset($message->audio)) {
+            $fileId = $message->audio->file_id;
+        } // Voice messages
+        elseif (isset($message->voice)) {
+            $fileId = $message->voice->file_id;
+        } // Video notes (circle videos)
+        elseif (isset($message->video_note)) {
+            $fileId = $message->video_note->file_id;
+        } // Stickers
+        elseif (isset($message->sticker)) {
+            $fileId = $message->sticker->file_id;
+        }
+
+        error_log('[Get File debug]' . print_r($message, true));
+        error_log('[Get File debug file ID]' . $fileId);
+
+        // If no file found
+        if (!$fileId) {
+            return '';
+        }
+
+        $file_info = $this->get_file_info($fileId);
+
+        // Check if request was successful
+        if (!$file_info || !isset($file_info['file_path'])) {
+            return '';
+        }
+
+        // Return downloadable URL
+        return "https://api.telegram.org/file/bot{$this->token}/" . $file_info['file_path'];
+    }
+
+
+    /**
+     * Gets the URL of the maximum resolution image from Telegram Bot API response
+     *
+     * @param object $message Message from Telegram Bot API
+     *
+     * @return string|null Image URL or null if photo is not found
+     */
     public function get_photo_url(object $message): ?string
     {
         error_log('{get_photo_url DEBUG MESSAGE} ' . print_r($message, true));
@@ -647,14 +707,14 @@ class Simple_Tg_Bot
 
         // Find photo with maximum size
         $max_photo = $this->get_max_resolution_photo($message->photo);
-        error_log('{get_photo_url $max_photo} ' . print_r($max_photo, true));
+
         if (!$max_photo || !isset($max_photo->file_id)) {
             return null;
         }
 
         // Get file information via getFile API
         $file_info = $this->get_file_info($max_photo->file_id, $this->token);
-        error_log('{get_photo_url $file_info} ' . print_r($file_info, true));
+
         if (!$file_info || !isset($file_info['file_path'])) {
             return null;
         }
@@ -713,6 +773,7 @@ class Simple_Tg_Bot
 
         if ($response === false) {
             curl_close($ch);
+
             return null;
         }
 
