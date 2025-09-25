@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.16
+ * V. 0.1.17
  */
 class Simple_Tg_Bot
 {
