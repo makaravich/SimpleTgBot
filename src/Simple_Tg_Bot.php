@@ -3,7 +3,7 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.17
+ * V. 0.1.18
  */
 class Simple_Tg_Bot
 {
@@ -71,7 +71,7 @@ class Simple_Tg_Bot
         if ($do_get_request && !isset($this->map['request_respond'])) {
             $this->get_request();
         } elseif (isset($this->map['request_respond'])) {
-            error_log('{DEBUG BOT} Run set_existing_request_respond');
+            //error_log('{DEBUG BOT} Run set_existing_request_respond');
             $this->set_existing_request_respond($this->map['request_respond']);
         }
     }
@@ -198,7 +198,7 @@ class Simple_Tg_Bot
             $data['reply_markup'] = json_encode($reply_markup);
         }
 
-        error_log('{DEBUG MARKDOWN} ' . print_r($data, true));
+        //error_log('{DEBUG MARKDOWN} ' . print_r($data, true));
 
         return $this->send_request($url, $data);
     }
@@ -381,7 +381,7 @@ class Simple_Tg_Bot
             'caption' => $caption
         ];
 
-        error_log('{DEBUG IMAGES} ' . print_r($data, true));
+        //error_log('{DEBUG IMAGES} ' . print_r($data, true));
 
         return $this->send_request($url, $data);
     }
@@ -404,7 +404,7 @@ class Simple_Tg_Bot
         $url = $this->api_url . "sendDocument";
         $data = [
             'chat_id' => $chat_id,
-            'document' => new CURLFile(realpath($document_path)),
+            'document' => new CURLFile($document_path),
             'caption' => $caption
         ];
 
@@ -536,6 +536,7 @@ class Simple_Tg_Bot
         //error_log('{DEBUG RESPONSE} ' . print_r($this->last_request_response, true));
 
         if (!$this->last_request_response->ok) {
+            error_log('[ERROR WITH THE REQUEST]. Dump: ' . print_r($this->last_request_response, true));
             $this->send_message('There was an error with the request. Please try again later.');
         }
 
@@ -667,8 +668,8 @@ class Simple_Tg_Bot
             $fileId = $message->sticker->file_id;
         }
 
-        error_log('[Get File debug]' . print_r($message, true));
-        error_log('[Get File debug file ID]' . $fileId);
+        //error_log('[Get File debug]' . print_r($message, true));
+        //error_log('[Get File debug file ID]' . $fileId);
 
         // If no file found
         if (!$fileId) {
@@ -696,7 +697,6 @@ class Simple_Tg_Bot
      */
     public function get_photo_url(object $message): ?string
     {
-        error_log('{get_photo_url DEBUG MESSAGE} ' . print_r($message, true));
 
         $message = $message->message ?? $message;
 
