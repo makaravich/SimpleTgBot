@@ -3,10 +3,9 @@
 /**
  * This class allows you to interact with Telegram Bot API
  *
- * V. 0.1.23
+ * V. 0.1.24
  */
-class Simple_Tg_Bot
-{
+class Simple_Tg_Bot {
     /**
      * @var string Your token ID
      */
@@ -53,8 +52,7 @@ class Simple_Tg_Bot
     private bool $auto_exec = true;
 
 
-    public function __construct($token, $do_get_request = true, $bot_map = [])
-    {
+    public function __construct($token, $do_get_request = true, $bot_map = []) {
         $this->token = $token;
         $this->api_url = "https://api.telegram.org/bot" . $this->token . "/";
 
@@ -76,23 +74,19 @@ class Simple_Tg_Bot
         }
     }
 
-    private function set_map($map): void
-    {
+    private function set_map($map): void {
         $this->map = $map;
     }
 
-    public function get_map(): array
-    {
+    public function get_map(): array {
         return $this->map;
     }
 
-    public function get_last_received_text(): string
-    {
+    public function get_last_received_text(): string {
         return $this->last_received_text;
     }
 
-    private function set_last_received_text($text): void
-    {
+    private function set_last_received_text($text): void {
         if (!empty ($text) && !str_starts_with($text, "/")) {
             $this->last_received_text = $text;
         } else {
@@ -105,8 +99,7 @@ class Simple_Tg_Bot
         }
     }
 
-    public function run_command($command): void
-    {
+    public function run_command($command): void {
         $command = ltrim($command, '/');
         if (strlen($command) > 100) {
             $this->send_message(__('Too long command'));
@@ -123,8 +116,7 @@ class Simple_Tg_Bot
      * Processing of the bot command /start
      * @return bool
      */
-    public function command_start(): bool
-    {
+    public function command_start(): bool {
         $this->send_message('Hi!');
         $this->send_message($this->help_message);
         $this->send_message('Use command /help to get this tip again');
@@ -136,8 +128,7 @@ class Simple_Tg_Bot
      * Processing of the bot command /help
      * @return mixed
      */
-    public function command_help(): mixed
-    {
+    public function command_help(): mixed {
         return $this->send_message($this->help_message);
     }
 
@@ -151,8 +142,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function send_message($message, string $chat_id = '', $reply_markup = null): mixed
-    {
+    public function send_message($message, string $chat_id = '', $reply_markup = null): mixed {
         if ($chat_id === '') {
             $chat_id = $this->chat_id;
         }
@@ -181,8 +171,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function send_markdown_message($message, string $chat_id = '', $reply_markup = null): mixed
-    {
+    public function send_markdown_message($message, string $chat_id = '', $reply_markup = null): mixed {
         if ($chat_id === '') {
             $chat_id = $this->chat_id;
         }
@@ -212,8 +201,7 @@ class Simple_Tg_Bot
      *
      * @return string Escaped text ready for MarkdownV2 formatting
      */
-    private function escape_markdown_v2(string $text): string
-    {
+    private function escape_markdown_v2(string $text): string {
         $result = '';
         $length = mb_strlen($text);
 
@@ -368,8 +356,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function send_photo($photo_path, $caption = null, string $chat_id = ''): mixed
-    {
+    public function send_photo($photo_path, $caption = null, string $chat_id = ''): mixed {
         if ($chat_id === '') {
             $chat_id = $this->chat_id;
         }
@@ -395,8 +382,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function send_document(string $document_path, string $caption = null, string $chat_id = ''): mixed
-    {
+    public function send_document(string $document_path, string $caption = null, string $chat_id = ''): mixed {
         if ($chat_id === '') {
             $chat_id = $this->chat_id;
         }
@@ -471,14 +457,43 @@ class Simple_Tg_Bot
     }
 
     /**
+     * Sending a response to the callback query
+     * @param $callback_query_id
+     * @param null $text
+     * @param bool $show_alert
+     * @return mixed
+     */
+    public function answer_callback_query(
+        $callback_query_id,
+        $text = null,
+        bool $show_alert = false
+    ): mixed {
+
+        $api_url = $this->api_url . "answerCallbackQuery";
+
+        $data = [
+            'callback_query_id' => $callback_query_id,
+        ];
+
+        if ($text !== null) {
+            $data['text'] = $text;
+        }
+
+        if ($show_alert === true) {
+            $data['show_alert'] = true;
+        }
+
+        return $this->send_request($api_url, $data);
+    }
+
+    /**
      * Setting the webhook
      *
      * @param $url
      *
      * @return mixed
      */
-    public function set_webhook($url): mixed
-    {
+    public function set_webhook($url): mixed {
         $webhook_url = $this->api_url . "setWebhook";
         $data = ['url' => $url];
 
@@ -490,8 +505,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function delete_webhook(): mixed
-    {
+    public function delete_webhook(): mixed {
         $url = $this->api_url . "deleteWebhook";
 
         return $this->send_request($url);
@@ -502,8 +516,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    public function get_updates(): mixed
-    {
+    public function get_updates(): mixed {
         $url = $this->api_url . "getUpdates";
 
         return $this->send_request($url);
@@ -514,8 +527,7 @@ class Simple_Tg_Bot
      *
      * @return object|false|string
      */
-    public function get_request(): object|false|string
-    {
+    public function get_request(): object|false|string {
         $input = file_get_contents('php://input');
 
         if (empty($input)) {
@@ -539,8 +551,7 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    private function set_existing_request_respond($request_respond): void
-    {
+    private function set_existing_request_respond($request_respond): void {
         $this->request_respond = $request_respond;
 
         $this->update_chat_id();
@@ -553,8 +564,7 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    private function update_chat_id(): void
-    {
+    private function update_chat_id(): void {
         $chat_id = $this->request_respond->message->chat->id;
 
         if (!$chat_id) {
@@ -576,8 +586,7 @@ class Simple_Tg_Bot
      *
      * @return mixed
      */
-    private function send_request($url, array $data = []): mixed
-    {
+    private function send_request($url, array $data = []): mixed {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -612,8 +621,7 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    public function edit_message($message_id, string $text = '', $reply_markup = null, string $parse_mode = 'HTML'): void
-    {
+    public function edit_message($message_id, string $text = '', $reply_markup = null, string $parse_mode = 'HTML'): void {
         $url = $this->api_url . "editMessageText";
 
         $request = [
@@ -644,8 +652,7 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    public function delete_message(int $message_id): void
-    {
+    public function delete_message(int $message_id): void {
         $url = $this->api_url . "deleteMessage";
         $request = [
             'chat_id' => $this->chat_id,
@@ -663,8 +670,7 @@ class Simple_Tg_Bot
      *
      * @return void
      */
-    public function edit_message_markup($message_id, $reply_markup): void
-    {
+    public function edit_message_markup($message_id, $reply_markup): void {
 
         $url = $this->api_url . "editMessageReplyMarkup";
 
@@ -682,8 +688,7 @@ class Simple_Tg_Bot
      *
      * @return object
      */
-    public function get_last_request_response(): object
-    {
+    public function get_last_request_response(): object {
         return $this->last_request_response;
     }
 
@@ -694,8 +699,7 @@ class Simple_Tg_Bot
      *
      * @return string|null Image URL or null if photo is not found
      */
-    public function get_document_url(object $message): ?string
-    {
+    public function get_document_url(object $message): ?string {
         $message = $message->message ?? $message;
 
         // Check if the message contains photo
@@ -754,8 +758,7 @@ class Simple_Tg_Bot
      *
      * @return string|null Image URL or null if photo is not found
      */
-    public function get_photo_url(object $message): ?string
-    {
+    public function get_photo_url(object $message): ?string {
 
         $message = $message->message ?? $message;
 
@@ -789,8 +792,7 @@ class Simple_Tg_Bot
      *
      * @return object|null PhotoSize object with maximum resolution
      */
-    function get_max_resolution_photo(array $photos): ?object
-    {
+    function get_max_resolution_photo(array $photos): ?object {
         if (empty($photos)) {
             return null;
         }
@@ -818,8 +820,7 @@ class Simple_Tg_Bot
      *
      * @return array|null File information or null in case of error
      */
-    function get_file_info(string $fileId): ?array
-    {
+    function get_file_info(string $fileId): ?array {
         $url = "https://api.telegram.org/bot{$this->token}/getFile?file_id=" . urlencode($fileId);
 
         $ch = curl_init($url);
